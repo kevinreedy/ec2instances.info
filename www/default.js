@@ -1,4 +1,30 @@
 var current_cost_duration = null;
+var ec2_price_url = "http://aws.amazon.com/ec2/pricing/pricing-on-demand-instances.json";
+//var ec2_price_url = "/pricing-on-demand-instances.json"; // Temporary for testing
+
+// Convert names returned from JSON to API names
+function ec2d(word) {
+    var d = new Array();
+    d["uODI"] = "t1.";
+    d["stdODI"] = "m1.";
+    d["hiMemODI"] = "m2.";
+    d["hiCPUODI"] = "c1.";
+    d["secgenstdODI"] = "m3.";
+    d["clusterComputeI"] = "cc1."; //TODO Look at cc1 vs cc2
+    d["clusterGPUI"] = "cg.";
+    d["hiIoODI"] = "hi1.";
+    
+    d["u"] = "micro";
+    d["sm"] = "small";
+    d["med"] = "medium";
+    d["lg"] = "large";
+    d["xl"] = "xlarge";
+    d["xxl"] = "2xlarge";
+    d["xxxxl"] = "4xlarge";
+    d["xxxxxxxxl"] = "8xlarge";
+
+    return d[word] ? d[word] : word;
+}
 
 function change_cost(duration) {
   // update menu text
@@ -53,6 +79,24 @@ $(function() {
         change_cost(current_cost_duration);
       }
     });
+    
+    $.getJSON(ec2_price_url, function(data) {
+        var useast = [];
+
+        $.each(data["config"]["regions"], function(key, region) {
+            if(region["region"] == "us-east") {
+                $.each(region["instanceTypes"], function(key, type) {
+                    $.each(type["sizes"], function(key, size) {
+                        $('#data > tbody:last').append("<tr><td colspan=7>&nbsp</td>" + 
+                                                       "<td>" + ec2d(type["type"]) + ec2d(size["size"]) + "</td>" + 
+                                                       "<td>" + size["valueColumns"][0]["prices"]["USD"] + "</td>" + // TODO Don't assume [0] is linux
+                                                       "<td>" + size["valueColumns"][1]["prices"]["USD"] + "</td></tr>");
+                    });
+                });
+            }
+        });
+    });
+
   });
 
   $.extend($.fn.dataTableExt.oStdClasses, {
